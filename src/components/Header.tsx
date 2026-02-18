@@ -36,23 +36,13 @@ const Header = ({ onJoinClick, className }: HeaderProps) => {
             <h1 className="text-lg font-display font-bold tracking-wider text-foreground uppercase">
               Kogi Global Tracker
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Diaspora Intelligence Network
-            </p>
+
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="h-9 w-9 rounded-full border border-border/50 bg-background/50 hover:bg-destructive hover:text-destructive-foreground transition-all glass"
-            title="Logout"
-          >
-            <LogOut className="h-[1.2rem] w-[1.2rem]" />
-          </Button>
+
           {onJoinClick && (
             <Button
               onClick={onJoinClick}
