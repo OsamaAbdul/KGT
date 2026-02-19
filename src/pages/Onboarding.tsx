@@ -68,6 +68,8 @@ const Onboarding = () => {
   const captureLocationAndIP = async () => {
     let coords = null;
     let ip_address = null;
+    let current_city = null;
+    let current_country = null;
 
     try {
       // Get Coords
@@ -80,21 +82,23 @@ const Onboarding = () => {
     }
 
     try {
-      // Get IP
+      // Get IP and Location Data
       const response = await fetch("https://ipapi.co/json/");
       const data = await response.json();
       ip_address = data.ip;
+      current_city = data.city;
+      current_country = data.country_name;
     } catch (err) {
       console.error("IP capture failed:", err);
     }
 
-    return { coords, ip_address };
+    return { coords, ip_address, current_city, current_country };
   };
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const { coords, ip_address } = await captureLocationAndIP();
+      const { coords, ip_address, current_city, current_country } = await captureLocationAndIP();
 
       let nin_slip_url = "";
       if (formData.ninSlip) {
@@ -126,6 +130,8 @@ const Onboarding = () => {
           nin_slip_url,
           last_known_coords: coords ? `POINT(${coords.lng} ${coords.lat})` : null,
           ip_address,
+          current_city,
+          current_country,
           onboarding_completed: true,
         })
         .eq("id", user.id);
@@ -169,7 +175,7 @@ const Onboarding = () => {
             {[2, 3, 4].map((s) => (
               <div key={s} className="flex-1 flex flex-col items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${step === s ? "border-primary bg-primary text-primary-foreground" :
-                    step > s ? "border-primary bg-primary/20 text-primary" : "border-muted text-muted-foreground"
+                  step > s ? "border-primary bg-primary/20 text-primary" : "border-muted text-muted-foreground"
                   }`}>
                   {step > s ? <CheckCircle2 className="h-6 w-6" /> : s - 1}
                 </div>
@@ -201,7 +207,7 @@ const Onboarding = () => {
                   <Label htmlFor="full_name" className="flex items-center gap-2"><User className="h-4 w-4" /> Full Name</Label>
                   <Input
                     id="full_name"
-                    placeholder="John Doe"
+                    placeholder="Osama abdul"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   />

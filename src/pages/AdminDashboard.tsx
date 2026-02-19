@@ -3,6 +3,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import UserManagement from "@/components/admin/UserManagement";
 import Analytics from "@/components/admin/Analytics";
 import Settings from "@/components/admin/Settings";
+import WorldMap from "@/components/WorldMap";
 import { Routes, Route } from "react-router-dom";
 import {
     Users,
@@ -114,6 +115,15 @@ function DashboardOverview() {
                         <p className="text-xs text-muted-foreground mt-1">{stat.diff}</p>
                     </div>
                 ))}
+            </div>
+
+            {/* Global Node Map */}
+            <div className="glass rounded-2xl border border-primary/10 overflow-hidden h-[500px] relative">
+                <div className="absolute top-6 left-8 z-10">
+                    <h3 className="text-xl font-display font-semibold">Global Distribution</h3>
+                    <p className="text-sm text-muted-foreground">Real-time geographical tracking of verified nodes.</p>
+                </div>
+                <WorldMap />
             </div>
 
             <div className="bg-card/30 backdrop-blur-md rounded-2xl border border-primary/10 p-8 text-center">

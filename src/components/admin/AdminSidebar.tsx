@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     LayoutDashboard,
     Users,
@@ -8,11 +8,13 @@ import {
     Menu,
     X,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const sidebarLinks = [
     { icon: LayoutDashboard, label: "Overview", path: "/admin" },
@@ -26,6 +28,7 @@ export default function AdminSidebar() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isLargeScreen, setIsLargeScreen] = useState(true);
     const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const checkScreen = () => setIsLargeScreen(window.innerWidth >= 1024);
@@ -35,6 +38,11 @@ export default function AdminSidebar() {
     }, []);
 
     const toggleSidebar = () => setCollapsed(!collapsed);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate("/");
+    };
 
     return (
         <>
@@ -126,7 +134,7 @@ export default function AdminSidebar() {
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-primary/10 bg-black/5 shrink-0">
+                <div className="p-4 border-t border-primary/10 bg-black/5 shrink-0 space-y-4">
                     <div className={cn(
                         "flex items-center gap-3 p-2 rounded-lg transition-all",
                         collapsed ? "justify-center" : "bg-primary/5"
@@ -141,6 +149,27 @@ export default function AdminSidebar() {
                             </div>
                         )}
                     </div>
+
+                    <Button
+                        variant="ghost"
+                        className={cn(
+                            "w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 text-muted-foreground hover:bg-destructive/10 hover:text-destructive group relative",
+                            collapsed && "justify-center px-0"
+                        )}
+                        onClick={handleLogout}
+                    >
+                        <LogOut className={cn("w-5 h-5 shrink-0 group-hover:rotate-12 transition-transform")} />
+                        {!collapsed && (
+                            <span className="font-medium whitespace-nowrap overflow-hidden transition-opacity duration-300">
+                                Sign Out
+                            </span>
+                        )}
+                        {collapsed && (
+                            <div className="absolute left-full ml-4 px-2 py-1 bg-destructive text-destructive-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                Sign Out
+                            </div>
+                        )}
+                    </Button>
                 </div>
             </motion.aside>
 

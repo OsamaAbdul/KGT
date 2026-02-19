@@ -49,7 +49,7 @@ const AuthTabs = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Check your email for a verification link!");
+      toast.success("continue your onboarding journey.....");
     }
   };
 

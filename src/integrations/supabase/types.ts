@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           country: string | null
           created_at: string
+          current_city: string | null
+          current_country: string | null
           dob: string | null
           email: string | null
           full_name: string | null
@@ -36,6 +38,8 @@ export type Database = {
         Insert: {
           country?: string | null
           created_at?: string
+          current_city?: string | null
+          current_country?: string | null
           dob?: string | null
           email?: string | null
           full_name?: string | null
@@ -54,6 +58,8 @@ export type Database = {
         Update: {
           country?: string | null
           created_at?: string
+          current_city?: string | null
+          current_country?: string | null
           dob?: string | null
           email?: string | null
           full_name?: string | null
@@ -159,25 +165,34 @@ export type Database = {
       }
       public_profiles: {
         Row: {
-          country: string | null
+          current_city: string | null
+          current_country: string | null
           full_name: string | null
           id: string | null
           last_known_coords: unknown
-          lga: string | null
+          origin_country: string | null
+          origin_lga: string | null
+          origin_state: string | null
         }
         Insert: {
-          country?: string | null
+          current_city?: string | null
+          current_country?: string | null
           full_name?: string | null
           id?: string | null
           last_known_coords?: unknown
-          lga?: string | null
+          origin_country?: string | null
+          origin_lga?: string | null
+          origin_state?: string | null
         }
         Update: {
-          country?: string | null
+          current_city?: string | null
+          current_country?: string | null
           full_name?: string | null
           id?: string | null
           last_known_coords?: unknown
-          lga?: string | null
+          origin_country?: string | null
+          origin_lga?: string | null
+          origin_state?: string | null
         }
         Relationships: []
       }

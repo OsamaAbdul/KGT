@@ -43,18 +43,71 @@ export default function UserManagement() {
             console.error("Fetch error:", error);
             toast.error("Failed to fetch users");
         } else {
-            console.log("Fetched profiles:", profiles);
+
             setUsers(profiles || []);
         }
         setLoading(false);
     };
 
-    useEffect(() => { fetchUsers(); }, []);
+    useEffect(() => {
+        fetchUsers();
+
+        // Set up real-time subscription
+        const channel = supabase
+            .channel('public:profiles')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+                    schema: 'public',
+                    table: 'profiles',
+                },
+                (payload) => {
+                    console.log('Real-time update received:', payload);
+                    fetchUsers();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
     const handleVerify = async (userId: string) => {
         const { error } = await supabase.from("profiles").update({ is_verified: true }).eq("id", userId);
-        if (error) toast.error("Verification failed");
-        else { toast.success("User verified"); fetchUsers(); }
+        if (error) {
+            console.error("Verification error:", error);
+            toast.error(`Verification failed: ${error.message}`);
+        } else {
+            toast.success("User verified");
+            fetchUsers();
+        }
+    };
+
+    const handleVerifyAll = async () => {
+        const pendingUsers = users.filter(u => !u.is_verified);
+        if (pendingUsers.length === 0) {
+            toast.info("No pending users to verify");
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to verify all ${pendingUsers.length} pending users?`)) return;
+
+        setLoading(true);
+        const { error } = await supabase
+            .from("profiles")
+            .update({ is_verified: true })
+            .eq("is_verified", false);
+
+        if (error) {
+            console.error("Bulk verification error:", error);
+            toast.error(`Bulk verification failed: ${error.message}`);
+        } else {
+            toast.success(`Successfully verified ${pendingUsers.length} users`);
+            fetchUsers();
+        }
+        setLoading(false);
     };
 
     const handleDelete = async (userId: string) => {
@@ -90,6 +143,14 @@ export default function UserManagement() {
                     </p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="glass border-primary/40 text-primary hover:bg-primary/10 flex-1 md:flex-none"
+                        onClick={handleVerifyAll}
+                    >
+                        <UserCheck className="mr-2 h-4 w-4" /> Verify All Pending
+                    </Button>
                     <Button variant="outline" size="sm" className="glass flex-1 md:flex-none" onClick={() => exportToPDF(filteredUsers, ["full_name", "email", "state_of_origin", "lga", "is_verified"], "kogite_directory")}>
                         <FileText className="mr-2 h-4 w-4" /> PDF
                     </Button>
@@ -111,14 +172,7 @@ export default function UserManagement() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <Button
-                            variant={filterLga === "non_kogi" ? "destructive" : "secondary"}
-                            onClick={() => setFilterLga(filterLga === "non_kogi" ? "" : "non_kogi")}
-                            className="transition-all"
-                        >
-                            <AlertCircle className="mr-2 h-4 w-4" />
-                            {filterLga === "non_kogi" ? "Show All Users" : "Filter Non-Kogi"}
-                        </Button>
+
                     </div>
                 </CardContent>
             </Card>

@@ -15,9 +15,9 @@ const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
 interface MarkerData {
   id: string;
   coordinates: [number, number];
-  country: string;
   fullName: string;
-  lga: string;
+  currentCity: string;
+  currentCountry: string;
 }
 
 const WorldMap = () => {
@@ -28,10 +28,10 @@ const WorldMap = () => {
     const fetchProfiles = async () => {
       const { data, error } = await supabase
         .from("public_profiles")
-        .select("id, country, lga, full_name, last_known_coords");
+        .select("id, full_name, current_city, current_country, origin_state, origin_country, last_known_coords");
 
       if (error) {
-        console.error("Supabase error fetching profiles:", error);
+        console.error("Error fetching profiles:", error);
         return;
       }
 
@@ -51,12 +51,16 @@ const WorldMap = () => {
             }
           }
 
+          // Use current location if available, otherwise fallback to origin
+          const city = p.current_city || p.origin_state || "Unknown City";
+          const country = p.current_country || p.origin_country || "Unknown Country";
+
           return {
             id: p.id ?? "",
             coordinates: [lng, lat] as [number, number],
-            country: p.country ?? "Unknown",
             fullName: p.full_name ?? "",
-            lga: p.lga ?? "",
+            currentCity: city,
+            currentCountry: country,
           };
         })
         .filter((m) => m.coordinates[0] !== 0 || m.coordinates[1] !== 0);
@@ -65,6 +69,26 @@ const WorldMap = () => {
     };
 
     fetchProfiles();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('public:profiles_map')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+        },
+        () => {
+          fetchProfiles();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
@@ -153,16 +177,7 @@ const WorldMap = () => {
                       strokeWidth="1"
                     />
                     {/* Content */}
-                    <text
-                      y="-30"
-                      textAnchor="middle"
-                      fill="#22c55e"
-                      fontSize="8"
-                      fontWeight="900"
-                      style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}
-                    >
-                      Node Location
-                    </text>
+
                     <text
                       y="-18"
                       textAnchor="middle"
@@ -170,7 +185,7 @@ const WorldMap = () => {
                       fontSize="10"
                       fontWeight="bold"
                     >
-                      {marker.country}
+                      {marker.currentCity}, {marker.currentCountry}
                     </text>
                   </g>
                 )}

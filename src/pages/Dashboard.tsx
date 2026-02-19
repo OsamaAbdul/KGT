@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Landmark, Briefcase, Fingerprint, LogOut } from "lucide-react";
+import { User, MapPin, Landmark, Briefcase, Fingerprint, LogOut, Ghost } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import Header from "@/components/Header";
 import { useNavigate } from "react-router-dom";
 
@@ -16,20 +18,68 @@ const Dashboard = () => {
         navigate("/");
     };
 
+    const fetchProfile = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", user.id)
+                .single();
+            setProfile(data);
+        }
+    };
+
     useEffect(() => {
-        const fetchProfile = async () => {
+        fetchProfile();
+
+        // Real-time subscription for profile changes
+        const setupSubscription = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const { data } = await supabase
-                    .from("profiles")
-                    .select("*")
-                    .eq("id", user.id)
-                    .single();
-                setProfile(data);
+                const channel = supabase
+                    .channel(`profile:${user.id}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'profiles',
+                            filter: `id=eq.${user.id}`
+                        },
+                        (payload) => {
+                            console.log('Profile updated real-time:', payload);
+                            setProfile(payload.new);
+                        }
+                    )
+                    .subscribe();
+
+                return channel;
             }
         };
-        fetchProfile();
+
+        const channelPromise = setupSubscription();
+
+        return () => {
+            channelPromise.then(channel => {
+                if (channel) supabase.removeChannel(channel);
+            });
+        };
     }, []);
+
+    const toggleGhostMode = async (enabled: boolean) => {
+        const { error } = await supabase
+            .from("profiles")
+            .update({ ghost_mode: enabled })
+            .eq("id", profile.id);
+
+        if (error) {
+            toast.error("Failed to update privacy settings");
+        } else {
+            setProfile({ ...profile, ghost_mode: enabled });
+            toast.success(enabled ? "Ghost Mode enabled" : "Ghost Mode disabled");
+        }
+    };
 
     if (!profile) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
@@ -70,8 +120,16 @@ const Dashboard = () => {
                                 <span className="font-medium">{profile.occupation}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground flex items-center gap-2"><Fingerprint className="h-4 w-4" /> NIN Verified</span>
-                                <Badge variant="outline" className="text-primary border-primary">Yes (Pending Review)</Badge>
+                                <span className="text-muted-foreground flex items-center gap-2"><Fingerprint className="h-4 w-4" /> Account Status</span>
+                                <Badge
+                                    variant={profile.is_verified ? "default" : "outline"}
+                                    className={profile.is_verified
+                                        ? "bg-primary glow-primary text-white"
+                                        : "text-muted-foreground border-muted"
+                                    }
+                                >
+                                    {profile.is_verified ? "Verified Identity" : "Verification Pending"}
+                                </Badge>
                             </div>
                         </CardContent>
                     </Card>
@@ -97,6 +155,26 @@ const Dashboard = () => {
                                 <span className="font-medium">{profile.country}</span>
                             </div>
                         </CardContent>
+                    </Card>
+                    <Card className="glass md:col-span-2">
+                        <CardHeader className="flex flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <Ghost className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                    <CardTitle>Privacy Settings</CardTitle>
+                                    <p className="text-sm text-muted-foreground">Manage your visibility on the global tracker</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-background/40 p-3 rounded-xl border border-primary/10">
+                                <span className="text-sm font-medium">Ghost Mode</span>
+                                <Switch
+                                    checked={profile.ghost_mode}
+                                    onCheckedChange={toggleGhostMode}
+                                />
+                            </div>
+                        </CardHeader>
                     </Card>
                 </div>
             </main>
